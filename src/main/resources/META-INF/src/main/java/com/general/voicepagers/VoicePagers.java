@@ -12,7 +12,9 @@ import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
 import net.minecraftforge.event.ServerChatEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -32,7 +34,9 @@ public class VoicePagers {
         ITEMS.register(modEventBus);
         modEventBus.addListener(this::addCreative);
 
-        // Регистрируем наш класс в главной шине событий, чтобы ловить сообщения чата
+        // Регистрируем наш файл конфигурации на сервере
+        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, VoicePagersConfig.SPEC);
+
         MinecraftForge.EVENT_BUS.register(this);
     }
 
@@ -42,30 +46,52 @@ public class VoicePagers {
         }
     }
 
-    // Ловим отправку сообщений в чат
     @SubscribeEvent
     public void onServerChat(ServerChatEvent event) {
         ServerPlayer sender = event.getPlayer();
         String message = event.getRawText();
 
-        // Если сообщение начинается с "!", считаем это отправкой в пейджер
-        if (message.startsWith("!")) {
-            int frequency = getPlayerPagerFrequency(sender);
+        // Всегда отменяем стандартную ванильную отправку сообщения, так как глобального чата больше нет
+        event.setCanceled(true);
 
-            // Если у игрока есть настроенный пейджер
-            if (frequency > 0) {
-                // Отменяем отправку сообщения в глобальный обычный чат
-                event.setCanceled(true);
+        boolean isPagerMessage = message.startsWith("!");
+        int frequency = isPagerMessage ? getPlayerPagerFrequency(sender) : 0;
 
-                // Отрезаем "!" от текста
-                String pagerMessage = message.substring(1).trim();
+        Component formattedText;
+        double maxDistanceSqr;
+
+        if (isPagerMessage && frequency > 0) {
+            // Режим ПЕЙДЖЕРА
+            String pagerMessage = message.substring(1).trim();
+            formattedText = Component.literal("§8[§bПейджер СН-" + frequency + "§8] §7" + sender.getScoreboardName() + "§r: " + pagerMessage);
+            
+            // Берем радиус из конфига и возводим в квадрат для быстрой проверки дистанции
+            double radius = VoicePagersConfig.PAGER_CHAT_RADIUS.get();
+            maxDistanceSqr = radius * radius;
+        } else {
+            // Режим ЛОКАЛЬНОГО чата (если сообщения без "!" ИЛИ у игрока просто нет пейджера в кармане)
+            formattedText = Component.literal("§7[Локально] " + sender.getScoreboardName() + "§r: " + message);
+            
+            double radius = VoicePagersConfig.LOCAL_CHAT_RADIUS.get();
+            maxDistanceSqr = radius * radius;
+        }
+
+        // Перебираем игроков и рассылаем сообщения в зависимости от условий
+        for (ServerPlayer receiver : sender.getServer().getPlayerList().getPlayers()) {
+            // Проверяем, что игроки находятся в одном и том же мире (измерении)
+            if (receiver.level() == sender.level()) {
                 
-                // Форматируем красивый текст: [Пейджер CH-3] Игрок: Текст
-                Component formattedText = Component.literal("§8[§bПейджер СН-" + frequency + "§8] §7" + sender.getScoreboardName() + "§r: " + pagerMessage);
-
-                // Рассылаем всем игрокам, у кого есть пейджер на этой же частоте
-                for (ServerPlayer receiver : sender.getServer().getPlayerList().getPlayers()) {
-                    if (getPlayerPagerFrequency(receiver) == frequency) {
+                // Считаем квадрат расстояния между отправителем и получателем
+                double distSqr = sender.distanceToSqr(receiver);
+                
+                if (distSqr <= maxDistanceSqr) {
+                    if (isPagerMessage && frequency > 0) {
+                        // Для пейджера проверяем, совпадает ли частота у получателя
+                        if (getPlayerPagerFrequency(receiver) == frequency) {
+                            receiver.sendSystemMessage(formattedText);
+                        }
+                    } else {
+                        // Для локального чата отправляем всем, кто просто попал в радиус
                         receiver.sendSystemMessage(formattedText);
                     }
                 }
@@ -73,7 +99,6 @@ public class VoicePagers {
         }
     }
 
-    // Метод поиска пейджера в инвентаре
     private int getPlayerPagerFrequency(ServerPlayer player) {
         Inventory inventory = player.getInventory();
         for (int i = 0; i < inventory.getContainerSize(); i++) {
