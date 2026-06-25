@@ -33,6 +33,9 @@ jobs:
         sed -i 's/\r$//' gradlew
         chmod +x gradlew
 
+    - name: Download and Decompile Forge Sources
+      run: ./gradlew compileJava --no-daemon
+
     - name: Build Mod with Forge
       run: ./gradlew build --no-daemon
 
