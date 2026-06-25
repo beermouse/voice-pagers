@@ -26,14 +26,16 @@ minecraft {
 }
 
 repositories {
-    maven { url = "https://maven.maxhenric.ch/repository/public" } // Репозиторий Simple Voice Chat
+    maven { url = "https://maven.maxhenric.ch/repository/public" }
 }
 
 dependencies {
     minecraft 'net.minecraftforge:forge:1.20.1-47.3.0'
-    
-    // Подключаем API голосового чата, чтобы пейджеры видели частоты раций
     compileOnly "de.maxhenric.voicechat:voicechat-api:1.20.1-2.5.0"
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
 }
 
 jar {
