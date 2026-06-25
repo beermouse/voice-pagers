@@ -34,4 +34,10 @@ jobs:
         chmod +x gradlew
 
     - name: Build Mod with Forge
-      run: ./gradlew build
+      run: ./gradlew build --no-daemon
+
+    - name: Upload Finished Mod Jar
+      uses: actions/upload-artifact@v4
+      with:
+        name: VoicePagers-1.20.1
+        path: build/libs/*.jar
