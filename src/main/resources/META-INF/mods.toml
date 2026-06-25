@@ -1,0 +1,26 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="voicepagers"
+version="1.0.0"
+displayName="Voice Pagers"
+authors="G_e_N_e_R_a_L"
+description='''
+Добавляет пейджеры, работающие на частотах мода Simple Voice Chat для ограничения текстового чата.
+'''
+
+[[dependencies.voicepagers]]
+modId="forge"
+mandatory=true
+versionRange="[47,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.voicepagers]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1]"
+ordering="NONE"
+side="BOTH"
