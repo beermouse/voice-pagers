@@ -20,23 +20,20 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Pre-installed Gradle
+    - name: Setup Gradle 7.6
       uses: gradle/actions/setup-gradle@v3
       with:
-        gradle-version: 8.1.1
+        gradle-version: 7.6
 
-    - name: Generate Missing Wrapper Jar
-      run: gradle wrapper --gradle-version 8.1.1
+    - name: Generate Wrapper Jar
+      run: gradle wrapper --gradle-version 7.6
 
-    - name: Fix Line Endings for Linux
+    - name: Fix Line Endings
       run: |
         sed -i 's/\r$//' gradlew
         chmod +x gradlew
 
-    - name: Download and Decompile Forge Sources
-      run: ./gradlew compileJava --no-daemon
-
-    - name: Build Mod with Forge
+    - name: Build Mod
       run: ./gradlew build --no-daemon
 
     - name: Upload Finished Mod Jar
