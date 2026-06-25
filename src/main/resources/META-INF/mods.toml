@@ -24,3 +24,7 @@ mandatory=true
 versionRange="[1.20.1]"
 ordering="NONE"
 side="BOTH"
+
+[[plugins]]
+    id="voicepagers"
+    class="com.general.voicepagers.VoiceChatPlugin"
